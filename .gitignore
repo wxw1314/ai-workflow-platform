@@ -7,4 +7,3 @@ backend/app/frontend/
 /blob-report/
 /playwright/.cache/
 remark/
-.env
