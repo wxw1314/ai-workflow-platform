@@ -26,7 +26,11 @@ jobs:
         with:
           version: 'latest-known'
       - run: docker compose -f compose.yml -f compose.ci.yml down -v --remove-orphans
-      - - run: docker compose -f compose.yml -f compose.ci.yml up -d --wait db mailpit
+      - run: docker compose -f compose.yml -f compose.ci.yml up -d --wait db mailpit
+      - name: Check PostgreSQL
+        run: |
+          docker compose -f compose.yml -f compose.ci.yml ps db
+          docker compose -f compose.yml -f compose.ci.yml port db 5432
       - name: Migrate DB
         run: uv run bash scripts/prestart.sh
         working-directory: backend
