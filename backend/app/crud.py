@@ -1,11 +1,23 @@
 import uuid
 from typing import Any
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, func, select
 
 from app.core.security import get_password_hash, verify_password
-from app.models import Item, ItemCreate, User, UserCreate, UserUpdate
-
+from app.models import (
+    Item,
+    ItemCreate,
+    KnowledgeBase,
+    KnowledgeBaseCreate,
+    KnowledgeBaseUpdate,
+    KnowledgeBasePublic,
+    KnowledgeBasesPublic,
+    User,
+    UserCreate,
+    UserUpdate,
+    Document,
+    DocumentChunk
+)
 
 def create_user(*, session: Session, user_create: UserCreate) -> User:
     db_obj = User.model_validate(
@@ -66,3 +78,247 @@ def create_item(*, session: Session, item_in: ItemCreate, owner_id: uuid.UUID) -
     session.commit()
     session.refresh(db_item)
     return db_item
+
+def create_knowledge_base(
+    *,
+    session: Session,
+    knowledge_base_in: KnowledgeBaseCreate,
+    owner_id: uuid.UUID,
+) -> KnowledgeBase:
+    db_obj = KnowledgeBase.model_validate(
+        knowledge_base_in,
+        update={"owner_id": owner_id},
+    )
+
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+
+    return db_obj
+
+
+
+def get_knowledge_bases(
+    *,
+    session: Session,
+    owner_id: uuid.UUID,
+    skip: int = 0,
+    limit: int = 100,
+) -> KnowledgeBasesPublic:
+    # 统计当前用户拥有的知识库数量
+    count_statement = (
+        select(func.count())
+        .select_from(KnowledgeBase)
+        .where(KnowledgeBase.owner_id == owner_id)
+    )
+    count = session.exec(count_statement).one()
+
+    # 查询当前用户的知识库，按创建时间倒序排列
+    statement = (
+        select(KnowledgeBase)
+        .where(KnowledgeBase.owner_id == owner_id)
+        .order_by(col(KnowledgeBase.created_at).desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    knowledge_bases = session.exec(statement).all()
+
+    # 返回公开模型
+    knowledge_bases_public = [
+        KnowledgeBasePublic.model_validate(item)
+        for item in knowledge_bases
+    ]
+
+    return KnowledgeBasesPublic(
+        data=knowledge_bases_public,
+        count=count,
+    )
+
+
+
+def get_knowledge_base(
+    *,
+    session: Session,
+    knowledge_base_id: uuid.UUID,
+    owner_id: uuid.UUID,
+) -> KnowledgeBase | None:
+    """Get a knowledge base owned by the specified user."""
+    statement = select(KnowledgeBase).where(
+        KnowledgeBase.id == knowledge_base_id,
+        KnowledgeBase.owner_id == owner_id,
+    )
+    return session.exec(statement).first()
+
+
+def update_knowledge_base(
+    *,
+    session: Session,
+    db_knowledge_base: KnowledgeBase,
+    knowledge_base_in: KnowledgeBaseUpdate,
+) -> KnowledgeBase:
+    """Update a knowledge base."""
+    update_data = knowledge_base_in.model_dump(exclude_unset=True)
+
+    db_knowledge_base.sqlmodel_update(update_data)
+
+    session.add(db_knowledge_base)
+    session.commit()
+    session.refresh(db_knowledge_base)
+
+    return db_knowledge_base
+
+
+def delete_knowledge_base(
+    *,
+    session: Session,
+    db_knowledge_base: KnowledgeBase,
+) -> None:
+    """Delete a knowledge base."""
+    session.delete(db_knowledge_base)
+    session.commit()
+
+def create_document(
+    *,
+    session: Session,
+    filename: str,
+    content_type: str | None,
+    size: int,
+    storage_path: str,
+    knowledge_base_id: uuid.UUID,
+) -> Document:
+    db_document = Document(
+        filename=filename,
+        content_type=content_type,
+        size=size,
+        storage_path=storage_path,
+        knowledge_base_id=knowledge_base_id,
+    )
+
+    session.add(db_document)
+    session.commit()
+    session.refresh(db_document)
+
+    return db_document
+
+
+def get_document(
+    *,
+    session: Session,
+    document_id: uuid.UUID,
+    knowledge_base_id: uuid.UUID,
+) -> Document | None:
+    statement = select(Document).where(
+        Document.id == document_id,
+        Document.knowledge_base_id == knowledge_base_id,
+    )
+    return session.exec(statement).first()
+
+
+def get_documents(
+    *,
+    session: Session,
+    knowledge_base_id: uuid.UUID,
+    skip: int = 0,
+    limit: int = 100,
+) -> list[Document]:
+    statement = (
+        select(Document)
+        .where(Document.knowledge_base_id == knowledge_base_id)
+        .offset(skip)
+        .limit(limit)
+    )
+    return list(session.exec(statement).all())
+
+
+def count_documents(
+    *,
+    session: Session,
+    knowledge_base_id: uuid.UUID,
+) -> int:
+    statement = select(func.count()).select_from(Document).where(
+        Document.knowledge_base_id == knowledge_base_id
+    )
+    return session.exec(statement).one()
+
+
+def delete_document(
+    *,
+    session: Session,
+    db_document: Document,
+) -> None:
+    session.delete(db_document)
+    session.commit()
+
+
+
+def create_document_chunks(
+    *,
+    session: Session,
+    document_id: uuid.UUID,
+    chunks: list[str],
+) -> list[DocumentChunk]:
+    db_chunks = [
+        DocumentChunk(
+            document_id=document_id,
+            chunk_index=index,
+            content=content,
+            character_count=len(content),
+        )
+        for index, content in enumerate(chunks)
+    ]
+
+    session.add_all(db_chunks)
+    session.flush()
+
+    return db_chunks
+
+
+
+def get_document_chunks(
+    *,
+    session: Session,
+    document_id: uuid.UUID,
+    skip: int = 0,
+    limit: int = 100,
+) -> list[DocumentChunk]:
+    statement = (
+        select(DocumentChunk)
+        .where(DocumentChunk.document_id == document_id)
+        .order_by(DocumentChunk.chunk_index)
+        .offset(skip)
+        .limit(limit)
+    )
+
+    return list(session.exec(statement).all())
+
+
+def count_document_chunks(
+    *,
+    session: Session,
+    document_id: uuid.UUID,
+) -> int:
+    statement = (
+        select(func.count())
+        .select_from(DocumentChunk)
+        .where(DocumentChunk.document_id == document_id)
+    )
+
+    return session.exec(statement).one()
+
+
+
+def delete_document_chunks(
+    *,
+    session: Session,
+    document_id: uuid.UUID,
+) -> None:
+    statement = select(DocumentChunk).where(
+        DocumentChunk.document_id == document_id
+    )
+
+    chunks = session.exec(statement).all()
+
+    for chunk in chunks:
+        session.delete(chunk)
+
+    session.flush()

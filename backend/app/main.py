@@ -11,8 +11,9 @@ from app.core.config import settings
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 
 
-def custom_generate_unique_id(route: APIRoute) -> str:
-    return f"{route.tags[0]}-{route.name}"
+def custom_generate_unique_id(route):
+    tag = route.tags[0] if route.tags else "default"
+    return f"{tag}-{route.name}"
 
 
 if settings.SENTRY_DSN and settings.FASTAPI_ENV != "development":
