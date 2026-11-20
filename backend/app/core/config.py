@@ -19,6 +19,13 @@ class Settings(BaseSettings):
         env_ignore_empty=True,
         extra="ignore",
     )
+    DASHSCOPE_API_KEY: str
+    DASHSCOPE_WORKSPACE_ID: str
+    MILVUS_URI: str
+    MILVUS_TOKEN: str | None = None
+    BAIYOU_API_KEY: str
+    BAIYOU_BASE_URL: str
+    BAIYOU_MODEL: str
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str
     # 60 minutes * 24 hours * 8 days = 8 days
