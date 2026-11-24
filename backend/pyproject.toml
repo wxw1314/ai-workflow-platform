@@ -24,6 +24,9 @@ dependencies = [
     "openai>=3.55.1",
     "pymilvus>=3.0.3",
     "langchain-openai>=1.8.5",
+    "langgraph>=1.2.23",
+    "langgraph-checkpoint-postgres>=3.2.1",
+    "psycopg-pool>=3.3.3",
 ]
 
 [dependency-groups]

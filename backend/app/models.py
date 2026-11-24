@@ -271,11 +271,108 @@ class RetrievedChunkPublic(SQLModel):
     character_count: int
     score: float
 
+class KnowledgeBaseAgentRequest(SQLModel):
+    session_id: uuid.UUID
+    query: str = Field(min_length=1, max_length=2000)
 
 class KnowledgeBaseSearchResponse(SQLModel):
     data: list[RetrievedChunkPublic]
     count: int
 
+
 class KnowledgeBaseAskResponse(SQLModel):
     answer: str
     sources: list[RetrievedChunkPublic]
+
+
+class ConversationBase(SQLModel):
+    title: str = Field(default="新建对话", min_length=1, max_length=255)
+
+
+class Conversation(ConversationBase, table=True):
+    """用户与知识库之间的一段 Agent 对话。"""
+
+    id: uuid.UUID = Field(
+        default_factory=uuid.uuid4,
+        primary_key=True,
+    )
+
+    owner_id: uuid.UUID = Field(
+        foreign_key="user.id",
+        nullable=False,
+        ondelete="CASCADE",
+        index=True,
+    )
+
+    knowledge_base_id: uuid.UUID = Field(
+        foreign_key="knowledgebase.id",
+        nullable=False,
+        ondelete="CASCADE",
+        index=True,
+    )
+
+    created_at: datetime = Field(
+        default_factory=get_datetime_utc,
+        nullable=False,
+    )
+
+    updated_at: datetime = Field(
+        default_factory=get_datetime_utc,
+        nullable=False,
+    )
+
+
+class ConversationCreate(SQLModel):
+    title: str = Field(
+        default="新建对话",
+        min_length=1,
+        max_length=255,
+    )
+
+
+class ConversationUpdate(SQLModel):
+    title: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=255,
+    )
+
+
+class ConversationPublic(ConversationBase):
+    id: uuid.UUID
+    owner_id: uuid.UUID
+    knowledge_base_id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class ConversationsPublic(SQLModel):
+    data: list[ConversationPublic]
+    count: int
+
+class ConversationCreateRequest(SQLModel):
+    knowledge_base_id: uuid.UUID
+    title: str = Field(default="新建对话", min_length=1, max_length=200)
+
+
+class ConversationUpdateRequest(SQLModel):
+    title: str = Field(min_length=1, max_length=200)
+
+
+class ConversationPublic(SQLModel):
+    id: uuid.UUID
+    title: str
+    owner_id: uuid.UUID
+    knowledge_base_id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class ConversationsPublic(SQLModel):
+    data: list[ConversationPublic]
+    count: int
+
+
+class ConversationMessagePublic(SQLModel):
+    type: str
+    content: str

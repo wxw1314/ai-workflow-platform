@@ -4,6 +4,8 @@ from app.api.routes import (
     knowledge_bases,
     knowledge_base_search,
     knowledge_base_ask,
+    knowledge_base_agent,
+    conversations,
     login,
     private,
     users,
@@ -21,6 +23,8 @@ api_router.include_router(knowledge_bases.router)
 api_router.include_router(documents.router)
 api_router.include_router(knowledge_base_search.router)
 api_router.include_router(knowledge_base_ask.router)
+api_router.include_router(knowledge_base_agent.router)
+api_router.include_router(conversations.router)
 
 if settings.FASTAPI_ENV == "development":
     api_router.include_router(private.router)

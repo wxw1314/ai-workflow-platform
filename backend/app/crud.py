@@ -12,12 +12,19 @@ from app.models import (
     KnowledgeBaseUpdate,
     KnowledgeBasePublic,
     KnowledgeBasesPublic,
+    Conversation,
+    ConversationCreate,
+    ConversationUpdate,
+    ConversationPublic,
+    ConversationsPublic,
     User,
     UserCreate,
     UserUpdate,
     Document,
     DocumentChunk
 )
+from datetime import UTC, datetime
+
 
 def create_user(*, session: Session, user_create: UserCreate) -> User:
     db_obj = User.model_validate(
@@ -322,3 +329,137 @@ def delete_document_chunks(
         session.delete(chunk)
 
     session.flush()
+
+def create_conversation(
+    *,
+    session: Session,
+    conversation_in: ConversationCreate,
+    owner_id: uuid.UUID,
+    knowledge_base_id: uuid.UUID,
+) -> Conversation:
+    """创建会话。"""
+
+    db_obj = Conversation.model_validate(
+        conversation_in,
+        update={
+            "owner_id": owner_id,
+            "knowledge_base_id": knowledge_base_id,
+        },
+    )
+
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+
+    return db_obj
+
+
+def get_conversation(
+    *,
+    session: Session,
+    conversation_id: uuid.UUID,
+    owner_id: uuid.UUID,
+) -> Conversation | None:
+    """查询当前用户拥有的会话。"""
+
+    statement = select(Conversation).where(
+        Conversation.id == conversation_id,
+        Conversation.owner_id == owner_id,
+    )
+
+    return session.exec(statement).first()
+
+
+def get_conversations(
+    *,
+    session: Session,
+    owner_id: uuid.UUID,
+    knowledge_base_id: uuid.UUID | None = None,
+    skip: int = 0,
+    limit: int = 100,
+) -> ConversationsPublic:
+    """查询当前用户的会话列表。"""
+
+    conditions = [Conversation.owner_id == owner_id]
+
+    if knowledge_base_id is not None:
+        conditions.append(
+            Conversation.knowledge_base_id == knowledge_base_id
+        )
+
+    count_statement = (
+        select(func.count())
+        .select_from(Conversation)
+        .where(*conditions)
+    )
+
+    count = session.exec(count_statement).one()
+
+    statement = (
+        select(Conversation)
+        .where(*conditions)
+        .order_by(Conversation.updated_at.desc())
+        .offset(skip)
+        .limit(limit)
+    )
+
+    conversations = session.exec(statement).all()
+
+    return ConversationsPublic(
+        data=[
+            ConversationPublic.model_validate(item)
+            for item in conversations
+        ],
+        count=count,
+    )
+
+
+def update_conversation(
+    *,
+    session: Session,
+    db_conversation: Conversation,
+    conversation_in: ConversationUpdate,
+) -> Conversation:
+    """更新会话。"""
+
+    update_data = conversation_in.model_dump(exclude_unset=True)
+
+    db_conversation.sqlmodel_update(
+        update_data,
+        update={
+            "updated_at": datetime.now(UTC),
+        },
+    )
+
+    session.add(db_conversation)
+    session.commit()
+    session.refresh(db_conversation)
+
+    return db_conversation
+
+
+def touch_conversation(
+    *,
+    session: Session,
+    db_conversation: Conversation,
+) -> Conversation:
+    """更新会话最后活跃时间。"""
+
+    db_conversation.updated_at = datetime.now(UTC)
+
+    session.add(db_conversation)
+    session.commit()
+    session.refresh(db_conversation)
+
+    return db_conversation
+
+
+def delete_conversation(
+    *,
+    session: Session,
+    db_conversation: Conversation,
+) -> None:
+    """删除会话业务记录。"""
+
+    session.delete(db_conversation)
+    session.commit()

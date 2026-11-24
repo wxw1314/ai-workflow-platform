@@ -1,0 +1,198 @@
+
+import json
+from uuid import UUID
+
+from langchain.chat_models import init_chat_model
+from langchain_core.messages import SystemMessage
+from langchain_core.tools import tool
+from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.graph import END, START, MessagesState, StateGraph
+from langgraph.prebuilt import ToolNode, tools_condition
+from sqlmodel import Session
+
+from app.core.config import settings
+from app.services.retrieval_service import retrieve_chunks
+
+
+class AgentService:
+    """基于 LangGraph 的知识库 ReAct Agent。"""
+
+    def __init__(self) -> None:
+        self.chat_model = init_chat_model(
+            model=settings.BAIYOU_MODEL,
+            model_provider="openai",
+            base_url=settings.BAIYOU_BASE_URL,
+            api_key=settings.BAIYOU_API_KEY,
+            temperature=0.2,
+            max_retries=2,
+            timeout=60,
+        )
+
+    def _build_tools(
+        self,
+        *,
+        session: Session,
+        knowledge_base_id: UUID,
+        retrieved_sources: list[dict],
+    ):
+        """创建绑定当前请求上下文的工具。"""
+
+        @tool
+        def search_knowledge_base(query: str) -> str:
+            """搜索当前知识库，获取与用户问题相关的资料。"""
+
+            chunks = retrieve_chunks(
+                session=session,
+                query=query,
+                knowledge_base_id=knowledge_base_id,
+                limit=5,
+            )
+
+            existing_ids = {
+                item["chunk_id"] for item in retrieved_sources
+            }
+
+            for chunk in chunks:
+                if chunk["chunk_id"] not in existing_ids:
+                    retrieved_sources.append(chunk)
+                    existing_ids.add(chunk["chunk_id"])
+
+            if not chunks:
+                return "知识库中没有检索到相关资料。请如实告知用户。"
+
+            context = []
+
+            for index, chunk in enumerate(chunks, start=1):
+                context.append(
+                    f"[资料 {index}]\n"
+                    f"内容：{chunk['content']}\n"
+                    f"相关度：{chunk['score']}"
+                )
+
+            return "\n\n".join(context)
+
+        return [search_knowledge_base]
+
+    def build_graph(
+        self,
+        *,
+        session: Session,
+        knowledge_base_id: UUID,
+        retrieved_sources: list[dict],
+        checkpointer: BaseCheckpointSaver,
+    ):
+        """构建带持久化记忆的 LangGraph 执行图。"""
+
+        tools = self._build_tools(
+            session=session,
+            knowledge_base_id=knowledge_base_id,
+            retrieved_sources=retrieved_sources,
+        )
+
+        model_with_tools = self.chat_model.bind_tools(tools)
+
+        system_prompt = """
+你是一个专业的知识库问答助手。
+
+请遵循以下规则：
+
+1. 用户的问题涉及知识库内容时，优先调用 search_knowledge_base 工具检索资料。
+2. 必须根据检索到的资料回答，不要编造知识库中不存在的信息。
+3. 如果没有检索到相关资料，明确告知用户。
+4. 回答应准确、清晰、有条理。
+5. 不要向用户展示内部工具调用过程。
+6. 结合当前会话的历史消息理解用户的追问。
+7. 如果用户使用“它”“这个”“刚才提到的”等指代，
+   应结合历史消息判断其含义。
+"""
+
+        def call_model(state: MessagesState):
+            messages = state["messages"]
+
+            # 仅在首次对话时添加系统提示词
+            if not any(
+                isinstance(message, SystemMessage)
+                for message in messages
+            ):
+                messages = [
+                    SystemMessage(content=system_prompt),
+                    *messages,
+                ]
+
+            response = model_with_tools.invoke(messages)
+
+            return {"messages": [response]}
+
+        builder = StateGraph(MessagesState)
+
+        builder.add_node("agent", call_model)
+        builder.add_node("tools", ToolNode(tools))
+
+        builder.add_edge(START, "agent")
+
+        builder.add_conditional_edges(
+            "agent",
+            tools_condition,
+            {
+                "tools": "tools",
+                END: END,
+            },
+        )
+
+        builder.add_edge("tools", "agent")
+
+        # 关键：将 PostgreSQL Checkpointer 注入图
+        return builder.compile(checkpointer=checkpointer)
+
+    def ask(
+        self,
+        *,
+        session: Session,
+        knowledge_base_id: UUID,
+        query: str,
+        thread_id: str,
+        checkpointer: BaseCheckpointSaver,
+    ) -> dict:
+        """执行一次支持多轮会话记忆的 Agent 对话。"""
+
+        if not query.strip():
+            raise ValueError("Query cannot be empty")
+
+        retrieved_sources: list[dict] = []
+
+        graph = self.build_graph(
+            session=session,
+            knowledge_base_id=knowledge_base_id,
+            retrieved_sources=retrieved_sources,
+            checkpointer=checkpointer,
+        )
+
+        result = graph.invoke(
+            {
+                "messages": [
+                    ("human", query),
+                ]
+            },
+            config={
+                "configurable": {
+                    "thread_id": thread_id,
+                    "checkpoint_ns": "",
+                },
+                "recursion_limit": 10,
+            },
+        )
+
+        final_message = result["messages"][-1]
+
+        answer = final_message.content
+
+        if not isinstance(answer, str):
+            answer = json.dumps(answer, ensure_ascii=False)
+
+        return {
+            "answer": answer,
+            "sources": retrieved_sources,
+        }
+
+
+agent_service = AgentService()
