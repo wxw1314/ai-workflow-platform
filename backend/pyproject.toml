@@ -27,6 +27,7 @@ dependencies = [
     "langgraph>=1.2.23",
     "langgraph-checkpoint-postgres>=3.2.1",
     "psycopg-pool>=3.3.3",
+    "langfuse>=5.2.0",
 ]
 
 [dependency-groups]

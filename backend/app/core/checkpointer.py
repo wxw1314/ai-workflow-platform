@@ -1,21 +1,21 @@
 
 from psycopg.rows import dict_row
-from psycopg_pool import ConnectionPool
+from psycopg_pool import AsyncConnectionPool
 
-from langgraph.checkpoint.postgres import PostgresSaver
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from app.core.config import settings
 
 
 class CheckpointerManager:
-    """管理 LangGraph PostgreSQL Checkpointer 的生命周期。"""
+    """管理 LangGraph PostgreSQL 异步 Checkpointer 的生命周期。"""
 
     def __init__(self) -> None:
-        self.pool: ConnectionPool | None = None
-        self.checkpointer: PostgresSaver | None = None
+        self.pool: AsyncConnectionPool | None = None
+        self.checkpointer: AsyncPostgresSaver | None = None
 
-    def initialize(self) -> None:
-        """创建连接池并初始化 Checkpointer。"""
+    async def initialize(self) -> None:
+        """创建异步连接池并初始化 Checkpointer。"""
 
         if self.checkpointer is not None:
             return
@@ -26,7 +26,7 @@ class CheckpointerManager:
             1,
         )
 
-        pool = ConnectionPool(
+        pool = AsyncConnectionPool(
             conninfo=conninfo,
             min_size=1,
             max_size=5,
@@ -35,6 +35,7 @@ class CheckpointerManager:
             max_lifetime=1800,
             max_idle=300,
             reconnect_timeout=30,
+            check=AsyncConnectionPool.check_connection,
             kwargs={
                 "autocommit": True,
                 "prepare_threshold": 0,
@@ -49,23 +50,23 @@ class CheckpointerManager:
         )
 
         try:
-            pool.open(wait=True, timeout=30)
+            await pool.open(wait=True, timeout=30)
 
-            checkpointer = PostgresSaver(pool)
-            checkpointer.setup()
+            checkpointer = AsyncPostgresSaver(pool)
+            await checkpointer.setup()
 
             self.pool = pool
             self.checkpointer = checkpointer
 
         except Exception:
-            pool.close()
+            await pool.close()
             raise
 
-    def close(self) -> None:
-        """关闭连接池，释放数据库连接。"""
+    async def close(self) -> None:
+        """异步关闭连接池，释放数据库连接。"""
 
         if self.pool is not None:
-            self.pool.close()
+            await self.pool.close()
 
         self.pool = None
         self.checkpointer = None

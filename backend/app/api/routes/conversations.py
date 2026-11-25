@@ -126,7 +126,7 @@ def update_conversation(
     )
 
 @router.get("/{conversation_id}/messages")
-def read_conversation_messages(
+async def read_conversation_messages(
     *,
     request: Request,
     session: SessionDep,
@@ -174,7 +174,7 @@ def read_conversation_messages(
     }
 
     # 4. 读取最新 checkpoint
-    checkpoint_tuple = checkpointer.get_tuple(config)
+    checkpoint_tuple = await checkpointer.get_tuple(config)
 
     if checkpoint_tuple is None:
         return {

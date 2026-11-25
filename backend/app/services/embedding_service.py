@@ -1,5 +1,4 @@
-
-from openai import OpenAI
+from openai import AsyncOpenAI, OpenAI
 from langchain_core.embeddings import Embeddings
 
 from app.core.config import settings
@@ -8,6 +7,7 @@ from app.core.config import settings
 class QwenEmbeddings(Embeddings):
     """
     使用阿里云百炼 Qwen Embedding API 的 LangChain 封装。
+    同时支持同步和异步调用。
     """
 
     MODEL_NAME = "qwen3.7-text-embedding-flash"
@@ -15,19 +15,22 @@ class QwenEmbeddings(Embeddings):
     BATCH_SIZE = 20
 
     def __init__(self) -> None:
+        base_url = (
+            f"https://{settings.DASHSCOPE_WORKSPACE_ID}"
+            ".cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
+        )
+
         self.client = OpenAI(
             api_key=settings.DASHSCOPE_API_KEY,
-            base_url=(
-                f"https://{settings.DASHSCOPE_WORKSPACE_ID}"
-                ".cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
-            ),
+            base_url=base_url,
+        )
+
+        self.async_client = AsyncOpenAI(
+            api_key=settings.DASHSCOPE_API_KEY,
+            base_url=base_url,
         )
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        """
-        将多条文档文本转换成向量。
-        自动分批，每次最多发送 20 条。
-        """
         if not texts:
             return []
 
@@ -42,24 +45,18 @@ class QwenEmbeddings(Embeddings):
                 dimensions=self.DIMENSIONS,
             )
 
-            # 按照原始输入顺序整理向量
             ordered_data = sorted(
                 response.data,
                 key=lambda item: item.index,
             )
 
-            batch_embeddings = [
+            all_embeddings.extend(
                 item.embedding for item in ordered_data
-            ]
-
-            all_embeddings.extend(batch_embeddings)
+            )
 
         return all_embeddings
 
     def embed_query(self, text: str) -> list[float]:
-        """
-        将用户查询文本转换成向量。
-        """
         if not text.strip():
             raise ValueError("Query text cannot be empty")
 
@@ -71,8 +68,17 @@ class QwenEmbeddings(Embeddings):
 
         return response.data[0].embedding
 
+    async def aembed_query(self, text: str) -> list[float]:
+        if not text.strip():
+            raise ValueError("Query text cannot be empty")
 
-# 创建可复用的 Embedding 服务实例
+        response = await self.async_client.embeddings.create(
+            model=self.MODEL_NAME,
+            input=[text],
+            dimensions=self.DIMENSIONS,
+        )
+
+        return response.data[0].embedding
+
+
 qwen_embeddings = QwenEmbeddings()
-
-

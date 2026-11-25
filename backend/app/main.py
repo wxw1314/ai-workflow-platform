@@ -1,7 +1,7 @@
 
 from contextlib import asynccontextmanager
 from pathlib import Path
-
+from app.core.db import async_engine
 import sentry_sdk
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
@@ -24,16 +24,17 @@ if settings.SENTRY_DSN and settings.FASTAPI_ENV != "development":
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 应用启动：初始化 Checkpointer
-    checkpointer_manager.initialize()
+    # 应用启动：异步初始化 Checkpointer
+    await checkpointer_manager.initialize()
 
     app.state.checkpointer = checkpointer_manager.checkpointer
 
     try:
         yield
     finally:
-        # 应用关闭：释放连接池
-        checkpointer_manager.close()
+        # 应用关闭：异步释放连接池
+        await checkpointer_manager.close()
+        await async_engine.dispose()
 
 
 app = FastAPI(

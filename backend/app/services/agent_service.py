@@ -1,14 +1,15 @@
-
 import json
+from collections.abc import AsyncIterator
+from typing import Any
 from uuid import UUID
 
 from langchain.chat_models import init_chat_model
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import AIMessageChunk, SystemMessage
 from langchain_core.tools import tool
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
 from app.services.retrieval_service import retrieve_chunks
@@ -31,26 +32,24 @@ class AgentService:
     def _build_tools(
         self,
         *,
-        session: Session,
+        session: AsyncSession,
         knowledge_base_id: UUID,
         retrieved_sources: list[dict],
     ):
-        """创建绑定当前请求上下文的工具。"""
+        """创建绑定当前请求上下文的异步工具。"""
 
         @tool
-        def search_knowledge_base(query: str) -> str:
+        async def search_knowledge_base(query: str) -> str:
             """搜索当前知识库，获取与用户问题相关的资料。"""
 
-            chunks = retrieve_chunks(
+            chunks = await retrieve_chunks(
                 session=session,
                 query=query,
                 knowledge_base_id=knowledge_base_id,
                 limit=5,
             )
 
-            existing_ids = {
-                item["chunk_id"] for item in retrieved_sources
-            }
+            existing_ids = {item["chunk_id"] for item in retrieved_sources}
 
             for chunk in chunks:
                 if chunk["chunk_id"] not in existing_ids:
@@ -76,7 +75,7 @@ class AgentService:
     def build_graph(
         self,
         *,
-        session: Session,
+        session: AsyncSession,
         knowledge_base_id: UUID,
         retrieved_sources: list[dict],
         checkpointer: BaseCheckpointSaver,
@@ -106,21 +105,16 @@ class AgentService:
    应结合历史消息判断其含义。
 """
 
-        def call_model(state: MessagesState):
+        async def call_model(state: MessagesState):
             messages = state["messages"]
 
-            # 仅在首次对话时添加系统提示词
-            if not any(
-                isinstance(message, SystemMessage)
-                for message in messages
-            ):
+            if not any(isinstance(message, SystemMessage) for message in messages):
                 messages = [
                     SystemMessage(content=system_prompt),
                     *messages,
                 ]
 
-            response = model_with_tools.invoke(messages)
-
+            response = await model_with_tools.ainvoke(messages)
             return {"messages": [response]}
 
         builder = StateGraph(MessagesState)
@@ -141,13 +135,106 @@ class AgentService:
 
         builder.add_edge("tools", "agent")
 
-        # 关键：将 PostgreSQL Checkpointer 注入图
         return builder.compile(checkpointer=checkpointer)
 
-    def ask(
+    def _build_config(self, thread_id: str) -> dict:
+        return {
+            "configurable": {
+                "thread_id": thread_id,
+                "checkpoint_ns": "",
+            },
+            "recursion_limit": 10,
+        }
+
+    async def stream(
         self,
         *,
-        session: Session,
+        session: AsyncSession,
+        knowledge_base_id: UUID,
+        query: str,
+        thread_id: str,
+        checkpointer: BaseCheckpointSaver,
+    ) -> AsyncIterator[dict[str, Any]]:
+        """流式执行支持多轮会话记忆的 Agent。"""
+
+        if not query.strip():
+            raise ValueError("Query cannot be empty")
+
+        retrieved_sources: list[dict] = []
+
+        graph = self.build_graph(
+            session=session,
+            knowledge_base_id=knowledge_base_id,
+            retrieved_sources=retrieved_sources,
+            checkpointer=checkpointer,
+        )
+
+        answer_parts: list[str] = []
+
+        yield {"event": "start", "data": {}}
+
+        async for part in graph.astream(
+            {"messages": [("human", query)]},
+            config=self._build_config(thread_id),
+            stream_mode=["messages", "updates"],
+            version="v2",
+        ):
+            if part["type"] == "messages":
+                message_chunk, metadata = part["data"]
+
+                if metadata.get("langgraph_node") != "agent":
+                    continue
+
+                if not isinstance(message_chunk, AIMessageChunk):
+                    continue
+
+                # 只输出文本，不把工具调用参数发送给前端。
+                content = message_chunk.text
+
+                if not isinstance(content, str) or not content:
+                    continue
+
+                answer_parts.append(content)
+
+                yield {
+                    "event": "token",
+                    "data": {"content": content},
+                }
+
+            elif part["type"] == "updates":
+                updates = part["data"]
+
+                if "tools" not in updates:
+                    continue
+
+                tool_messages = updates["tools"].get("messages", [])
+
+                for message in tool_messages:
+                    yield {
+                        "event": "tool_end",
+                        "data": {
+                            "tool": getattr(message, "name", "unknown"),
+                            "tool_call_id": getattr(
+                                message,
+                                "tool_call_id",
+                                None,
+                            ),
+                            "status": "success",
+                        },
+                    }
+
+        yield {
+            "event": "done",
+            "data": {
+                "answer": "".join(answer_parts),
+                "sources": retrieved_sources,
+            },
+        }
+
+    async def ask(
+        self,
+        *,
+        session: AsyncSession,
         knowledge_base_id: UUID,
         query: str,
         thread_id: str,
@@ -167,23 +254,12 @@ class AgentService:
             checkpointer=checkpointer,
         )
 
-        result = graph.invoke(
-            {
-                "messages": [
-                    ("human", query),
-                ]
-            },
-            config={
-                "configurable": {
-                    "thread_id": thread_id,
-                    "checkpoint_ns": "",
-                },
-                "recursion_limit": 10,
-            },
+        result = await graph.ainvoke(
+            {"messages": [("human", query)]},
+            config=self._build_config(thread_id),
         )
 
         final_message = result["messages"][-1]
-
         answer = final_message.content
 
         if not isinstance(answer, str):

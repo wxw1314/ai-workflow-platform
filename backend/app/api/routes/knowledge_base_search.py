@@ -1,10 +1,9 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session
+from fastapi import APIRouter, HTTPException
 
-from app import crud
-from app.api import deps
+from app import crud_async
+from app.api.deps import AsyncSessionDep, CurrentUserAsync
 from app.models import (
     KnowledgeBaseSearchRequest,
     KnowledgeBaseSearchResponse,
@@ -12,24 +11,23 @@ from app.models import (
 )
 from app.services.retrieval_service import retrieve_chunks
 
-from app.api.deps import CurrentUser,SessionDep
 
-router = APIRouter(tags=['knowledge-base'])
+router = APIRouter(tags=["knowledge-base"])
 
 
 @router.post(
     "/knowledge-bases/{knowledge_base_id}/search",
     response_model=KnowledgeBaseSearchResponse,
 )
-def search_knowledge_base(
+async def search_knowledge_base(
     *,
-    session: SessionDep,
+    session: AsyncSessionDep,
     knowledge_base_id: UUID,
     request: KnowledgeBaseSearchRequest,
-    current_user: CurrentUser,
-):
+    current_user: CurrentUserAsync,
+) -> KnowledgeBaseSearchResponse:
     # 1. 检查知识库是否存在，以及当前用户是否有权访问
-    knowledge_base = crud.get_knowledge_base(
+    knowledge_base = await crud_async.get_knowledge_base(
         session=session,
         knowledge_base_id=knowledge_base_id,
         owner_id=current_user.id,
@@ -41,15 +39,15 @@ def search_knowledge_base(
             detail="Knowledge base not found",
         )
 
-    # 2. 执行语义检索
-    results = retrieve_chunks(
+    # 2. 执行异步语义检索
+    results = await retrieve_chunks(
         session=session,
         query=request.query,
         knowledge_base_id=knowledge_base_id,
         limit=request.limit,
     )
 
-    # 3. 转换成 API 响应模型
+    # 3. 转换 API 响应
     data = [
         RetrievedChunkPublic(**item)
         for item in results

@@ -1,16 +1,17 @@
-
+import asyncio
 from uuid import UUID
 
-from sqlmodel import Session, select
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models import Document, DocumentChunk
 from app.services.embedding_service import qwen_embeddings
 from app.services.vector_store_service import milvus_vector_store
 
 
-def retrieve_chunks(
+async def retrieve_chunks(
     *,
-    session: Session,
+    session: AsyncSession,
     query: str,
     knowledge_base_id: UUID,
     limit: int = 5,
@@ -21,11 +22,12 @@ def retrieve_chunks(
     if limit < 1:
         raise ValueError("Limit must be greater than 0")
 
-    # 1. 将用户问题转换成向量
-    query_embedding = qwen_embeddings.embed_query(query)
+    # 1. 异步调用 Embedding API
+    query_embedding = await qwen_embeddings.aembed_query(query)
 
-    # 2. 在 Milvus 中搜索相似向量
-    search_results = milvus_vector_store.search(
+    # 2. 将同步 Milvus 搜索放到线程池
+    search_results = await asyncio.to_thread(
+        milvus_vector_store.search,
         query_embedding=query_embedding,
         knowledge_base_id=str(knowledge_base_id),
         limit=limit,
@@ -40,7 +42,7 @@ def retrieve_chunks(
         for item in search_results
     ]
 
-    # PostgreSQL 查询原文，并验证知识库归属
+    # 4. 异步查询 PostgreSQL，并验证知识库归属
     statement = (
         select(
             DocumentChunk.id,
@@ -58,19 +60,19 @@ def retrieve_chunks(
         )
     )
 
-    db_chunks = session.exec(statement).all()
+    result = await session.exec(statement)
+    db_chunks = result.all()
 
-    # 建立 ID 到查询结果的映射
     chunk_map = {
-        str(chunk.id): chunk  
+        str(chunk.id): chunk
         for chunk in db_chunks
     }
 
-    # 按照 Milvus 的相似度排序返回
+    # 5. 按 Milvus 相似度顺序返回
     retrieved_chunks = []
 
-    for result in search_results:
-        chunk = chunk_map.get(result["chunk_id"])
+    for item in search_results:
+        chunk = chunk_map.get(item["chunk_id"])
 
         if chunk is None:
             continue
@@ -80,8 +82,7 @@ def retrieve_chunks(
             "document_id": str(chunk.document_id),
             "content": chunk.content,
             "character_count": chunk.character_count,
-            "score": result["score"],
+            "score": item["score"],
         })
-
 
     return retrieved_chunks
