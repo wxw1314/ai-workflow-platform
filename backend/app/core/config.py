@@ -19,6 +19,11 @@ class Settings(BaseSettings):
         env_ignore_empty=True,
         extra="ignore",
     )
+        # Langfuse observability
+    LANGFUSE_TRACING_ENABLED: bool = False
+    LANGFUSE_PUBLIC_KEY: str | None = None
+    LANGFUSE_SECRET_KEY: str | None = None
+    LANGFUSE_BASE_URL: str = "https://jp.cloud.langfuse.com"
     DASHSCOPE_API_KEY: str
     DASHSCOPE_WORKSPACE_ID: str
     MILVUS_URI: str
@@ -59,6 +64,15 @@ class Settings(BaseSettings):
     def _set_default_emails_from(self) -> Self:
         if not self.EMAILS_FROM_NAME:
             self.EMAILS_FROM_NAME = self.PROJECT_NAME
+        return self
+    
+    @model_validator(mode="after")
+    def _validate_langfuse_config(self) -> Self:
+        if self.LANGFUSE_TRACING_ENABLED:
+            if not self.LANGFUSE_PUBLIC_KEY or not self.LANGFUSE_SECRET_KEY:
+                raise ValueError(
+                    "Langfuse tracing requires PUBLIC_KEY and SECRET_KEY"
+                )
         return self
 
     EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48

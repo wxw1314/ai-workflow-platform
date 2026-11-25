@@ -105,6 +105,7 @@ async def run_knowledge_base_agent(
     result = await agent_service.ask(
         session=session,
         knowledge_base_id=knowledge_base_id,
+        user_id=current_user.id,
         query=body.query,
         thread_id=thread_id,
         checkpointer=checkpointer,
@@ -147,6 +148,7 @@ async def stream_knowledge_base_agent(
             async for event in agent_service.stream(
                 session=session,
                 knowledge_base_id=knowledge_base_id,
+                user_id=current_user.id,
                 query=body.query,
                 thread_id=thread_id,
                 checkpointer=checkpointer,

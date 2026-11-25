@@ -1,14 +1,15 @@
-
 from contextlib import asynccontextmanager
 from pathlib import Path
-from app.core.db import async_engine
+
 import sentry_sdk
 from fastapi import FastAPI
+from langfuse import Langfuse, get_client
 from starlette.middleware.cors import CORSMiddleware
 
 from app.api.main import api_router
-from app.core.config import settings
 from app.core.checkpointer import checkpointer_manager
+from app.core.config import settings
+from app.core.db import async_engine
 
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 
@@ -24,16 +25,33 @@ if settings.SENTRY_DSN and settings.FASTAPI_ENV != "development":
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 应用启动：异步初始化 Checkpointer
-    await checkpointer_manager.initialize()
+    # 初始化 Langfuse
+    if settings.LANGFUSE_TRACING_ENABLED:
+        Langfuse(
+            public_key=settings.LANGFUSE_PUBLIC_KEY,
+            secret_key=settings.LANGFUSE_SECRET_KEY,
+            base_url=settings.LANGFUSE_BASE_URL,
+            tracing_enabled=True,
+        )
+        app.state.langfuse = get_client()
+    else:
+        app.state.langfuse = None
 
+    # 初始化 Checkpointer
+    await checkpointer_manager.initialize()
     app.state.checkpointer = checkpointer_manager.checkpointer
 
     try:
         yield
     finally:
-        # 应用关闭：异步释放连接池
+        # 关闭 Checkpointer
         await checkpointer_manager.close()
+
+        # 释放 Langfuse 后台资源，并发送剩余 Trace
+        if app.state.langfuse is not None:
+            app.state.langfuse.shutdown()
+
+        # 释放数据库连接
         await async_engine.dispose()
 
 

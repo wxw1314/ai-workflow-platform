@@ -6,6 +6,7 @@ from uuid import UUID
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import AIMessageChunk, SystemMessage
 from langchain_core.tools import tool
+from langfuse.langchain import CallbackHandler
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -137,20 +138,48 @@ class AgentService:
 
         return builder.compile(checkpointer=checkpointer)
 
-    def _build_config(self, thread_id: str) -> dict:
-        return {
+    def _build_config(
+        self,
+        *,
+        thread_id: str,
+        knowledge_base_id: UUID,
+        user_id: UUID,
+        request_mode: str,
+    ) -> dict:
+        config = {
+            "run_name": f"knowledge-base-agent-{request_mode}",
             "configurable": {
                 "thread_id": thread_id,
                 "checkpoint_ns": "",
             },
             "recursion_limit": 10,
+            "metadata": {
+                "langfuse_session_id": thread_id,
+                "langfuse_user_id": str(user_id),
+                "langfuse_tags": [
+                    "agent",
+                    "rag",
+                    "knowledge-base",
+                ],
+                "knowledge_base_id": str(knowledge_base_id),
+                "request_mode": request_mode,
+            },
         }
+
+        if request_mode == "stream":
+            config["metadata"]["langfuse_tags"].append("stream")
+
+        if settings.LANGFUSE_TRACING_ENABLED:
+            config["callbacks"] = [CallbackHandler()]
+
+        return config
 
     async def stream(
         self,
         *,
         session: AsyncSession,
         knowledge_base_id: UUID,
+        user_id: UUID,
         query: str,
         thread_id: str,
         checkpointer: BaseCheckpointSaver,
@@ -175,7 +204,12 @@ class AgentService:
 
         async for part in graph.astream(
             {"messages": [("human", query)]},
-            config=self._build_config(thread_id),
+            config=self._build_config(
+                thread_id=thread_id,
+                knowledge_base_id=knowledge_base_id,
+                user_id=user_id,
+                request_mode="stream",
+            ),
             stream_mode=["messages", "updates"],
             version="v2",
         ):
@@ -236,6 +270,7 @@ class AgentService:
         *,
         session: AsyncSession,
         knowledge_base_id: UUID,
+        user_id: UUID,
         query: str,
         thread_id: str,
         checkpointer: BaseCheckpointSaver,
@@ -256,7 +291,12 @@ class AgentService:
 
         result = await graph.ainvoke(
             {"messages": [("human", query)]},
-            config=self._build_config(thread_id),
+            config=self._build_config(
+                thread_id=thread_id,
+                knowledge_base_id=knowledge_base_id,
+                user_id=user_id,
+                request_mode="ask",
+            ),
         )
 
         final_message = result["messages"][-1]
