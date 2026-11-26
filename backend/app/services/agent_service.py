@@ -122,7 +122,8 @@ class AgentService:
         builder.add_node("tools", ToolNode(tools))
         builder.add_edge(START, "agent")
         builder.add_conditional_edges(
-            "agent", tools_condition, {"tools": "tools", END: END}
+            "agent", tools_condition, {"tools": "tools", END: END
+            }
         )
         builder.add_edge("tools", "agent")
         return builder.compile(checkpointer=checkpointer)
@@ -182,7 +183,10 @@ class AgentService:
                     "message": f"{service} 服务暂时异常，正在重试。",
                 },
             }
-            loop.call_soon_threadsafe(event_queue.put_nowait, ("retry", event))
+            loop.call_soon_threadsafe(
+                event_queue.put_nowait,
+                ("retry", event),
+            )
 
         graph = self.build_graph(
             session=session,
@@ -226,26 +230,37 @@ class AgentService:
                 if kind == "retry":
                     yield payload
                     continue
+
                 if kind == "graph_error":
                     raise payload
+
                 if kind == "graph_finished":
                     finished = True
                     continue
 
                 part = payload
+
                 if part["type"] == "messages":
                     message_chunk, metadata = part["data"]
+
                     if metadata.get("langgraph_node") != "agent":
                         continue
+
                     if not isinstance(message_chunk, AIMessageChunk):
                         continue
+
                     content = message_chunk.text
+
                     if isinstance(content, str) and content:
                         answer_parts.append(content)
-                        yield {"event": "token", "data": {"content": content}}
+                        yield {
+                            "event": "token",
+                            "data": {"content": content},
+                        }
 
                 elif part["type"] == "updates":
                     updates = part["data"]
+
                     if "agent" in updates:
                         for message in updates["agent"].get("messages", []):
                             for tool_call in getattr(message, "tool_calls", []):
@@ -260,25 +275,42 @@ class AgentService:
                     if "tools" in updates:
                         for message in updates["tools"].get("messages", []):
                             content = message.content
+
                             degraded = (
                                 isinstance(content, str)
                                 and content.startswith("【工具暂时不可用】")
                             )
+
                             status = (
-                                "degraded" if degraded
+                                "degraded"
+                                if degraded
                                 else getattr(message, "status", "success")
                             )
+
                             yield {
                                 "event": "tool_end",
                                 "data": {
-                                    "tool": getattr(message, "name", "unknown"),
-                                    "tool_call_id": getattr(message, "tool_call_id", None),
+                                    "tool": getattr(
+                                        message,
+                                        "name",
+                                        "unknown",
+                                    ),
+                                    "tool_call_id": getattr(
+                                        message,
+                                        "tool_call_id",
+                                        None,
+                                    ),
                                     "status": status,
-                                    "error": str(content) if degraded or status == "error" else None,
+                                    "error": (
+                                        str(content)
+                                        if degraded or status == "error"
+                                        else None
+                                    ),
                                 },
                             }
 
             await producer
+
             yield {
                 "event": "done",
                 "data": {
@@ -286,13 +318,23 @@ class AgentService:
                     "sources": retrieved_sources,
                 },
             }
+
+        except asyncio.CancelledError:
+            # 客户端断开或主动取消时，取消 LangGraph producer。
+            logger.info(
+                "Agent stream cancelled: thread_id=%s",
+                thread_id,
+            )
+            raise
+
         finally:
             if not producer.done():
                 producer.cancel()
-                try:
-                    await producer
-                except asyncio.CancelledError:
-                    pass
+
+            try:
+                await producer
+            except asyncio.CancelledError:
+                pass
 
     async def ask(
         self,
@@ -308,12 +350,14 @@ class AgentService:
             raise ValueError("Query cannot be empty")
 
         retrieved_sources: list[dict] = []
+
         graph = self.build_graph(
             session=session,
             knowledge_base_id=knowledge_base_id,
             retrieved_sources=retrieved_sources,
             checkpointer=checkpointer,
         )
+
         result = await graph.ainvoke(
             {"messages": [("human", query)]},
             config=self._build_config(
@@ -323,10 +367,16 @@ class AgentService:
                 request_mode="ask",
             ),
         )
+
         answer = result["messages"][-1].content
+
         if not isinstance(answer, str):
             answer = json.dumps(answer, ensure_ascii=False)
-        return {"answer": answer, "sources": retrieved_sources}
+
+        return {
+            "answer": answer,
+            "sources": retrieved_sources,
+        }
 
 
 agent_service = AgentService()

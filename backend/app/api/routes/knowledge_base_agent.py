@@ -1,6 +1,6 @@
+import asyncio
 import json
 import logging
-import asyncio
 from collections.abc import AsyncIterator
 from uuid import UUID
 
@@ -117,7 +117,10 @@ async def run_knowledge_base_agent(
         db_conversation=conversation,
     )
 
-    sources = [RetrievedChunkPublic.model_validate(item) for item in result["sources"]]
+    sources = [
+        RetrievedChunkPublic.model_validate(item)
+        for item in result["sources"]
+    ]
 
     return KnowledgeBaseAskResponse(
         answer=result["answer"],
@@ -154,14 +157,6 @@ async def stream_knowledge_base_agent(
                 thread_id=thread_id,
                 checkpointer=checkpointer,
             ):
-                # 客户端已经断开，不再继续发送事件
-                if await request.is_disconnected():
-                    logger.info(
-                        "Agent SSE client disconnected: thread_id=%s",
-                        thread_id,
-                    )
-                    return
-
                 if event["event"] == "done":
                     await crud_async.touch_conversation(
                         session=session,
@@ -174,26 +169,23 @@ async def stream_knowledge_base_agent(
                 )
 
         except asyncio.CancelledError:
-            # StreamingResponse 在客户端断开等情况下可能取消生成任务
+            # AbortController.abort() / 客户端断开：不发送 error SSE。
             logger.info(
-                "Agent SSE task cancelled: thread_id=%s",
+                "Agent stream cancelled by client: thread_id=%s",
                 thread_id,
             )
             await session.rollback()
             raise
 
         except Exception:
-            logger.exception(
-                "Agent streaming execution failed: thread_id=%s",
-                thread_id,
-            )
-
+            logger.exception("Agent streaming execution failed")
             await session.rollback()
 
             yield (
-                "event: error\n"
+                f"event: error\n"
                 f"data: {json.dumps({'message': 'Agent execution failed'}, ensure_ascii=False)}\n\n"
             )
+
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
