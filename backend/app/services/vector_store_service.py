@@ -2,7 +2,7 @@
 from typing import Any
 import json
 from pymilvus import DataType, MilvusClient
-
+from app.services.retry_service import retry_sync
 from app.core.config import settings
 from app.models import DocumentChunk
 
@@ -138,19 +138,22 @@ class MilvusVectorStore:
         if limit < 1:
             raise ValueError("limit must be greater than 0")
 
-        results = self.client.search(
-            collection_name=self.COLLECTION_NAME,
-            data=[query_embedding],
-            filter=f'knowledge_base_id == "{knowledge_base_id}"',
-            limit=limit,
-            output_fields=[
-                "document_id",
-                "knowledge_base_id",
-            ],
-            search_params={
-                "metric_type": "COSINE",
-                "params": {},
-            },
+        results = retry_sync(
+            lambda: self.client.search(
+                collection_name=self.COLLECTION_NAME,
+                data=[query_embedding],
+                filter=f'knowledge_base_id == "{knowledge_base_id}"',
+                limit=limit,
+                output_fields=[
+                    "document_id",
+                    "knowledge_base_id",
+                ],
+                search_params={
+                    "metric_type": "COSINE",
+                    "params": {},
+                },
+            ),
+            max_attempts=3,
         )
 
         hits = results[0] if results else []

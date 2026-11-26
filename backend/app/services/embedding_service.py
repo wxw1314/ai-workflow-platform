@@ -23,11 +23,15 @@ class QwenEmbeddings(Embeddings):
         self.client = OpenAI(
             api_key=settings.DASHSCOPE_API_KEY,
             base_url=base_url,
+            max_retries=2,
+            timeout=30.0,
         )
 
         self.async_client = AsyncOpenAI(
             api_key=settings.DASHSCOPE_API_KEY,
             base_url=base_url,
+            timeout=30.0,
+            max_retries=0,
         )
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:

@@ -1,5 +1,6 @@
 import json
 import logging
+import asyncio
 from collections.abc import AsyncIterator
 from uuid import UUID
 
@@ -153,6 +154,14 @@ async def stream_knowledge_base_agent(
                 thread_id=thread_id,
                 checkpointer=checkpointer,
             ):
+                # 客户端已经断开，不再继续发送事件
+                if await request.is_disconnected():
+                    logger.info(
+                        "Agent SSE client disconnected: thread_id=%s",
+                        thread_id,
+                    )
+                    return
+
                 if event["event"] == "done":
                     await crud_async.touch_conversation(
                         session=session,
@@ -164,8 +173,20 @@ async def stream_knowledge_base_agent(
                     f"data: {json.dumps(event['data'], ensure_ascii=False)}\n\n"
                 )
 
+        except asyncio.CancelledError:
+            # StreamingResponse 在客户端断开等情况下可能取消生成任务
+            logger.info(
+                "Agent SSE task cancelled: thread_id=%s",
+                thread_id,
+            )
+            await session.rollback()
+            raise
+
         except Exception:
-            logger.exception("Agent streaming execution failed")
+            logger.exception(
+                "Agent streaming execution failed: thread_id=%s",
+                thread_id,
+            )
 
             await session.rollback()
 
@@ -173,7 +194,6 @@ async def stream_knowledge_base_agent(
                 "event: error\n"
                 f"data: {json.dumps({'message': 'Agent execution failed'}, ensure_ascii=False)}\n\n"
             )
-
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
