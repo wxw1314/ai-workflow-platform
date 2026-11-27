@@ -17,7 +17,12 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
+import { Route as LayoutKnowledgeBasesRouteImport } from './routes/_layout/knowledge-bases'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
+import { Route as LayoutWorkflowsRouteImport } from './routes/_layout/workflows'
+import { Route as LayoutKnowledgeBasesKnowledgeBaseIdRouteImport } from './routes/_layout/knowledge-bases.$knowledgeBaseId'
+import { Route as LayoutKnowledgeBasesKnowledgeBaseIdIndexRouteImport } from './routes/_layout/knowledge-bases.$knowledgeBaseId.index'
+import { Route as LayoutKnowledgeBasesKnowledgeBaseIdAgentRouteImport } from './routes/_layout/knowledge-bases.$knowledgeBaseId.agent'
 
 const LayoutRoute = LayoutRouteImport.update({
   id: '/_layout',
@@ -58,11 +63,39 @@ const LayoutItemsRoute = LayoutItemsRouteImport.update({
   path: '/items',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutKnowledgeBasesRoute = LayoutKnowledgeBasesRouteImport.update({
+  id: '/knowledge-bases',
+  path: '/knowledge-bases',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutSettingsRoute = LayoutSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutWorkflowsRoute = LayoutWorkflowsRouteImport.update({
+  id: '/workflows',
+  path: '/workflows',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutKnowledgeBasesKnowledgeBaseIdRoute =
+  LayoutKnowledgeBasesKnowledgeBaseIdRouteImport.update({
+    id: '/$knowledgeBaseId',
+    path: '/$knowledgeBaseId',
+    getParentRoute: () => LayoutKnowledgeBasesRoute,
+  } as any)
+const LayoutKnowledgeBasesKnowledgeBaseIdIndexRoute =
+  LayoutKnowledgeBasesKnowledgeBaseIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => LayoutKnowledgeBasesKnowledgeBaseIdRoute,
+  } as any)
+const LayoutKnowledgeBasesKnowledgeBaseIdAgentRoute =
+  LayoutKnowledgeBasesKnowledgeBaseIdAgentRouteImport.update({
+    id: '/agent',
+    path: '/agent',
+    getParentRoute: () => LayoutKnowledgeBasesKnowledgeBaseIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof LayoutIndexRoute
@@ -72,7 +105,12 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
   '/items': typeof LayoutItemsRoute
+  '/knowledge-bases': typeof LayoutKnowledgeBasesRouteWithChildren
   '/settings': typeof LayoutSettingsRoute
+  '/workflows': typeof LayoutWorkflowsRoute
+  '/knowledge-bases/$knowledgeBaseId': typeof LayoutKnowledgeBasesKnowledgeBaseIdRouteWithChildren
+  '/knowledge-bases/$knowledgeBaseId/agent': typeof LayoutKnowledgeBasesKnowledgeBaseIdAgentRoute
+  '/knowledge-bases/$knowledgeBaseId/': typeof LayoutKnowledgeBasesKnowledgeBaseIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -81,8 +119,12 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
   '/items': typeof LayoutItemsRoute
+  '/knowledge-bases': typeof LayoutKnowledgeBasesRouteWithChildren
   '/settings': typeof LayoutSettingsRoute
+  '/workflows': typeof LayoutWorkflowsRoute
   '/': typeof LayoutIndexRoute
+  '/knowledge-bases/$knowledgeBaseId/agent': typeof LayoutKnowledgeBasesKnowledgeBaseIdAgentRoute
+  '/knowledge-bases/$knowledgeBaseId': typeof LayoutKnowledgeBasesKnowledgeBaseIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -93,8 +135,13 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_layout/admin': typeof LayoutAdminRoute
   '/_layout/items': typeof LayoutItemsRoute
+  '/_layout/knowledge-bases': typeof LayoutKnowledgeBasesRouteWithChildren
   '/_layout/settings': typeof LayoutSettingsRoute
+  '/_layout/workflows': typeof LayoutWorkflowsRoute
   '/_layout/': typeof LayoutIndexRoute
+  '/_layout/knowledge-bases/$knowledgeBaseId': typeof LayoutKnowledgeBasesKnowledgeBaseIdRouteWithChildren
+  '/_layout/knowledge-bases/$knowledgeBaseId/agent': typeof LayoutKnowledgeBasesKnowledgeBaseIdAgentRoute
+  '/_layout/knowledge-bases/$knowledgeBaseId/': typeof LayoutKnowledgeBasesKnowledgeBaseIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -106,7 +153,12 @@ export interface FileRouteTypes {
     | '/signup'
     | '/admin'
     | '/items'
+    | '/knowledge-bases'
     | '/settings'
+    | '/workflows'
+    | '/knowledge-bases/$knowledgeBaseId'
+    | '/knowledge-bases/$knowledgeBaseId/agent'
+    | '/knowledge-bases/$knowledgeBaseId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -115,8 +167,12 @@ export interface FileRouteTypes {
     | '/signup'
     | '/admin'
     | '/items'
+    | '/knowledge-bases'
     | '/settings'
+    | '/workflows'
     | '/'
+    | '/knowledge-bases/$knowledgeBaseId/agent'
+    | '/knowledge-bases/$knowledgeBaseId'
   id:
     | '__root__'
     | '/_layout'
@@ -126,8 +182,13 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_layout/admin'
     | '/_layout/items'
+    | '/_layout/knowledge-bases'
     | '/_layout/settings'
+    | '/_layout/workflows'
     | '/_layout/'
+    | '/_layout/knowledge-bases/$knowledgeBaseId'
+    | '/_layout/knowledge-bases/$knowledgeBaseId/agent'
+    | '/_layout/knowledge-bases/$knowledgeBaseId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -196,6 +257,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutItemsRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/knowledge-bases': {
+      id: '/_layout/knowledge-bases'
+      path: '/knowledge-bases'
+      fullPath: '/knowledge-bases'
+      preLoaderRoute: typeof LayoutKnowledgeBasesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/settings': {
       id: '/_layout/settings'
       path: '/settings'
@@ -203,20 +271,82 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutSettingsRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/workflows': {
+      id: '/_layout/workflows'
+      path: '/workflows'
+      fullPath: '/workflows'
+      preLoaderRoute: typeof LayoutWorkflowsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/knowledge-bases/$knowledgeBaseId': {
+      id: '/_layout/knowledge-bases/$knowledgeBaseId'
+      path: '/$knowledgeBaseId'
+      fullPath: '/knowledge-bases/$knowledgeBaseId'
+      preLoaderRoute: typeof LayoutKnowledgeBasesKnowledgeBaseIdRouteImport
+      parentRoute: typeof LayoutKnowledgeBasesRoute
+    }
+    '/_layout/knowledge-bases/$knowledgeBaseId/': {
+      id: '/_layout/knowledge-bases/$knowledgeBaseId/'
+      path: '/'
+      fullPath: '/knowledge-bases/$knowledgeBaseId/'
+      preLoaderRoute: typeof LayoutKnowledgeBasesKnowledgeBaseIdIndexRouteImport
+      parentRoute: typeof LayoutKnowledgeBasesKnowledgeBaseIdRoute
+    }
+    '/_layout/knowledge-bases/$knowledgeBaseId/agent': {
+      id: '/_layout/knowledge-bases/$knowledgeBaseId/agent'
+      path: '/agent'
+      fullPath: '/knowledge-bases/$knowledgeBaseId/agent'
+      preLoaderRoute: typeof LayoutKnowledgeBasesKnowledgeBaseIdAgentRouteImport
+      parentRoute: typeof LayoutKnowledgeBasesKnowledgeBaseIdRoute
+    }
   }
 }
+
+interface LayoutKnowledgeBasesKnowledgeBaseIdRouteChildren {
+  LayoutKnowledgeBasesKnowledgeBaseIdAgentRoute: typeof LayoutKnowledgeBasesKnowledgeBaseIdAgentRoute
+  LayoutKnowledgeBasesKnowledgeBaseIdIndexRoute: typeof LayoutKnowledgeBasesKnowledgeBaseIdIndexRoute
+}
+
+const LayoutKnowledgeBasesKnowledgeBaseIdRouteChildren: LayoutKnowledgeBasesKnowledgeBaseIdRouteChildren =
+  {
+    LayoutKnowledgeBasesKnowledgeBaseIdAgentRoute:
+      LayoutKnowledgeBasesKnowledgeBaseIdAgentRoute,
+    LayoutKnowledgeBasesKnowledgeBaseIdIndexRoute:
+      LayoutKnowledgeBasesKnowledgeBaseIdIndexRoute,
+  }
+
+const LayoutKnowledgeBasesKnowledgeBaseIdRouteWithChildren =
+  LayoutKnowledgeBasesKnowledgeBaseIdRoute._addFileChildren(
+    LayoutKnowledgeBasesKnowledgeBaseIdRouteChildren,
+  )
+
+interface LayoutKnowledgeBasesRouteChildren {
+  LayoutKnowledgeBasesKnowledgeBaseIdRoute: typeof LayoutKnowledgeBasesKnowledgeBaseIdRouteWithChildren
+}
+
+const LayoutKnowledgeBasesRouteChildren: LayoutKnowledgeBasesRouteChildren = {
+  LayoutKnowledgeBasesKnowledgeBaseIdRoute:
+    LayoutKnowledgeBasesKnowledgeBaseIdRouteWithChildren,
+}
+
+const LayoutKnowledgeBasesRouteWithChildren =
+  LayoutKnowledgeBasesRoute._addFileChildren(LayoutKnowledgeBasesRouteChildren)
 
 interface LayoutRouteChildren {
   LayoutAdminRoute: typeof LayoutAdminRoute
   LayoutItemsRoute: typeof LayoutItemsRoute
+  LayoutKnowledgeBasesRoute: typeof LayoutKnowledgeBasesRouteWithChildren
   LayoutSettingsRoute: typeof LayoutSettingsRoute
+  LayoutWorkflowsRoute: typeof LayoutWorkflowsRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
 }
 
 const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAdminRoute: LayoutAdminRoute,
   LayoutItemsRoute: LayoutItemsRoute,
+  LayoutKnowledgeBasesRoute: LayoutKnowledgeBasesRouteWithChildren,
   LayoutSettingsRoute: LayoutSettingsRoute,
+  LayoutWorkflowsRoute: LayoutWorkflowsRoute,
   LayoutIndexRoute: LayoutIndexRoute,
 }
 

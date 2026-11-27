@@ -5,6 +5,16 @@ export type ClientOptions = {
 };
 
 /**
+ * Body_documents-upload_document
+ */
+export type Body_documents_upload_document = {
+    /**
+     * File
+     */
+    file: Blob | File;
+};
+
+/**
  * Body_login-login_access_token
  */
 export type Body_login_login_access_token = {
@@ -32,6 +42,162 @@ export type Body_login_login_access_token = {
      * Client Secret
      */
     client_secret?: string | null;
+};
+
+/**
+ * ConversationCreateRequest
+ */
+export type ConversationCreateRequest = {
+    /**
+     * Knowledge Base Id
+     */
+    knowledge_base_id: string;
+    /**
+     * Title
+     */
+    title?: string;
+};
+
+/**
+ * ConversationPublic
+ */
+export type ConversationPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Owner Id
+     */
+    owner_id: string;
+    /**
+     * Knowledge Base Id
+     */
+    knowledge_base_id: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * ConversationUpdateRequest
+ */
+export type ConversationUpdateRequest = {
+    /**
+     * Title
+     */
+    title: string;
+};
+
+/**
+ * ConversationsPublic
+ */
+export type ConversationsPublic = {
+    /**
+     * Data
+     */
+    data: Array<ConversationPublic>;
+    /**
+     * Count
+     */
+    count: number;
+};
+
+/**
+ * DocumentChunkPublic
+ */
+export type DocumentChunkPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Document Id
+     */
+    document_id: string;
+    /**
+     * Chunk Index
+     */
+    chunk_index: number;
+    /**
+     * Content
+     */
+    content: string;
+    /**
+     * Character Count
+     */
+    character_count: number;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+};
+
+/**
+ * DocumentChunksPublic
+ */
+export type DocumentChunksPublic = {
+    /**
+     * Data
+     */
+    data: Array<DocumentChunkPublic>;
+    /**
+     * Count
+     */
+    count: number;
+};
+
+/**
+ * DocumentPublic
+ */
+export type DocumentPublic = {
+    /**
+     * Filename
+     */
+    filename: string;
+    /**
+     * Content Type
+     */
+    content_type?: string | null;
+    /**
+     * Size
+     */
+    size?: number | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Knowledge Base Id
+     */
+    knowledge_base_id: string;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+};
+
+/**
+ * DocumentsPublic
+ */
+export type DocumentsPublic = {
+    /**
+     * Data
+     */
+    data: Array<DocumentPublic>;
+    /**
+     * Count
+     */
+    count: number;
 };
 
 /**
@@ -113,6 +279,130 @@ export type ItemsPublic = {
 };
 
 /**
+ * KnowledgeBaseAgentRequest
+ */
+export type KnowledgeBaseAgentRequest = {
+    /**
+     * Session Id
+     */
+    session_id: string;
+    /**
+     * Query
+     */
+    query: string;
+};
+
+/**
+ * KnowledgeBaseAskResponse
+ */
+export type KnowledgeBaseAskResponse = {
+    /**
+     * Answer
+     */
+    answer: string;
+    /**
+     * Sources
+     */
+    sources: Array<RetrievedChunkPublic>;
+};
+
+/**
+ * KnowledgeBaseCreate
+ */
+export type KnowledgeBaseCreate = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Description
+     */
+    description?: string | null;
+};
+
+/**
+ * KnowledgeBasePublic
+ */
+export type KnowledgeBasePublic = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Owner Id
+     */
+    owner_id: string;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+};
+
+/**
+ * KnowledgeBaseSearchRequest
+ */
+export type KnowledgeBaseSearchRequest = {
+    /**
+     * Query
+     */
+    query: string;
+    /**
+     * Limit
+     */
+    limit?: number;
+};
+
+/**
+ * KnowledgeBaseSearchResponse
+ */
+export type KnowledgeBaseSearchResponse = {
+    /**
+     * Data
+     */
+    data: Array<RetrievedChunkPublic>;
+    /**
+     * Count
+     */
+    count: number;
+};
+
+/**
+ * KnowledgeBaseUpdate
+ */
+export type KnowledgeBaseUpdate = {
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+};
+
+/**
+ * KnowledgeBasesPublic
+ */
+export type KnowledgeBasesPublic = {
+    /**
+     * Data
+     */
+    data: Array<KnowledgeBasePublic>;
+    /**
+     * Count
+     */
+    count: number;
+};
+
+/**
  * Message
  */
 export type Message = {
@@ -156,6 +446,32 @@ export type PrivateUserCreate = {
      * Is Verified
      */
     is_verified?: boolean;
+};
+
+/**
+ * RetrievedChunkPublic
+ */
+export type RetrievedChunkPublic = {
+    /**
+     * Chunk Id
+     */
+    chunk_id: string;
+    /**
+     * Document Id
+     */
+    document_id: string;
+    /**
+     * Content
+     */
+    content: string;
+    /**
+     * Character Count
+     */
+    character_count: number;
+    /**
+     * Score
+     */
+    score: number;
 };
 
 /**
@@ -920,6 +1236,666 @@ export type itemsUpdateItemResponses = {
 };
 
 export type itemsUpdateItemResponse = itemsUpdateItemResponses[keyof itemsUpdateItemResponses];
+
+export type knowledgeBasesReadKnowledgeBasesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Skip
+         */
+        skip?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/knowledge-bases/';
+};
+
+export type knowledgeBasesReadKnowledgeBasesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeBasesReadKnowledgeBasesError = knowledgeBasesReadKnowledgeBasesErrors[keyof knowledgeBasesReadKnowledgeBasesErrors];
+
+export type knowledgeBasesReadKnowledgeBasesResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeBasesPublic;
+};
+
+export type knowledgeBasesReadKnowledgeBasesResponse = knowledgeBasesReadKnowledgeBasesResponses[keyof knowledgeBasesReadKnowledgeBasesResponses];
+
+export type knowledgeBasesCreateKnowledgeBaseData = {
+    body: KnowledgeBaseCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/knowledge-bases/';
+};
+
+export type knowledgeBasesCreateKnowledgeBaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeBasesCreateKnowledgeBaseError = knowledgeBasesCreateKnowledgeBaseErrors[keyof knowledgeBasesCreateKnowledgeBaseErrors];
+
+export type knowledgeBasesCreateKnowledgeBaseResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeBasePublic;
+};
+
+export type knowledgeBasesCreateKnowledgeBaseResponse = knowledgeBasesCreateKnowledgeBaseResponses[keyof knowledgeBasesCreateKnowledgeBaseResponses];
+
+export type knowledgeBasesDeleteKnowledgeBaseData = {
+    body?: never;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-bases/{id}';
+};
+
+export type knowledgeBasesDeleteKnowledgeBaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeBasesDeleteKnowledgeBaseError = knowledgeBasesDeleteKnowledgeBaseErrors[keyof knowledgeBasesDeleteKnowledgeBaseErrors];
+
+export type knowledgeBasesDeleteKnowledgeBaseResponses = {
+    /**
+     * Successful Response
+     */
+    200: Message;
+};
+
+export type knowledgeBasesDeleteKnowledgeBaseResponse = knowledgeBasesDeleteKnowledgeBaseResponses[keyof knowledgeBasesDeleteKnowledgeBaseResponses];
+
+export type knowledgeBasesReadKnowledgeBaseData = {
+    body?: never;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-bases/{id}';
+};
+
+export type knowledgeBasesReadKnowledgeBaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeBasesReadKnowledgeBaseError = knowledgeBasesReadKnowledgeBaseErrors[keyof knowledgeBasesReadKnowledgeBaseErrors];
+
+export type knowledgeBasesReadKnowledgeBaseResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeBasePublic;
+};
+
+export type knowledgeBasesReadKnowledgeBaseResponse = knowledgeBasesReadKnowledgeBaseResponses[keyof knowledgeBasesReadKnowledgeBaseResponses];
+
+export type knowledgeBasesUpdateKnowledgeBaseData = {
+    body: KnowledgeBaseUpdate;
+    path: {
+        /**
+         * Id
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-bases/{id}';
+};
+
+export type knowledgeBasesUpdateKnowledgeBaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeBasesUpdateKnowledgeBaseError = knowledgeBasesUpdateKnowledgeBaseErrors[keyof knowledgeBasesUpdateKnowledgeBaseErrors];
+
+export type knowledgeBasesUpdateKnowledgeBaseResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeBasePublic;
+};
+
+export type knowledgeBasesUpdateKnowledgeBaseResponse = knowledgeBasesUpdateKnowledgeBaseResponses[keyof knowledgeBasesUpdateKnowledgeBaseResponses];
+
+export type documentsReadDocumentsData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Base Id
+         */
+        knowledge_base_id: string;
+    };
+    query?: {
+        /**
+         * Skip
+         */
+        skip?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/knowledge-bases/{knowledge_base_id}/documents';
+};
+
+export type documentsReadDocumentsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type documentsReadDocumentsError = documentsReadDocumentsErrors[keyof documentsReadDocumentsErrors];
+
+export type documentsReadDocumentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: DocumentsPublic;
+};
+
+export type documentsReadDocumentsResponse = documentsReadDocumentsResponses[keyof documentsReadDocumentsResponses];
+
+export type documentsUploadDocumentData = {
+    body: Body_documents_upload_document;
+    path: {
+        /**
+         * Knowledge Base Id
+         */
+        knowledge_base_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-bases/{knowledge_base_id}/documents';
+};
+
+export type documentsUploadDocumentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type documentsUploadDocumentError = documentsUploadDocumentErrors[keyof documentsUploadDocumentErrors];
+
+export type documentsUploadDocumentResponses = {
+    /**
+     * Successful Response
+     */
+    201: DocumentPublic;
+};
+
+export type documentsUploadDocumentResponse = documentsUploadDocumentResponses[keyof documentsUploadDocumentResponses];
+
+export type documentsRemoveDocumentData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Base Id
+         */
+        knowledge_base_id: string;
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-bases/{knowledge_base_id}/documents/{document_id}';
+};
+
+export type documentsRemoveDocumentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type documentsRemoveDocumentError = documentsRemoveDocumentErrors[keyof documentsRemoveDocumentErrors];
+
+export type documentsRemoveDocumentResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type documentsRemoveDocumentResponse = documentsRemoveDocumentResponses[keyof documentsRemoveDocumentResponses];
+
+export type documentsReadDocumentData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Base Id
+         */
+        knowledge_base_id: string;
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-bases/{knowledge_base_id}/documents/{document_id}';
+};
+
+export type documentsReadDocumentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type documentsReadDocumentError = documentsReadDocumentErrors[keyof documentsReadDocumentErrors];
+
+export type documentsReadDocumentResponses = {
+    /**
+     * Successful Response
+     */
+    200: DocumentPublic;
+};
+
+export type documentsReadDocumentResponse = documentsReadDocumentResponses[keyof documentsReadDocumentResponses];
+
+export type documentsProcessDocumentEndpointData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Base Id
+         */
+        knowledge_base_id: string;
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-bases/{knowledge_base_id}/documents/{document_id}/process';
+};
+
+export type documentsProcessDocumentEndpointErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type documentsProcessDocumentEndpointError = documentsProcessDocumentEndpointErrors[keyof documentsProcessDocumentEndpointErrors];
+
+export type documentsProcessDocumentEndpointResponses = {
+    /**
+     * Successful Response
+     */
+    200: DocumentChunksPublic;
+};
+
+export type documentsProcessDocumentEndpointResponse = documentsProcessDocumentEndpointResponses[keyof documentsProcessDocumentEndpointResponses];
+
+export type documentsReadDocumentChunksData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Base Id
+         */
+        knowledge_base_id: string;
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: {
+        /**
+         * Skip
+         */
+        skip?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/knowledge-bases/{knowledge_base_id}/documents/{document_id}/chunks';
+};
+
+export type documentsReadDocumentChunksErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type documentsReadDocumentChunksError = documentsReadDocumentChunksErrors[keyof documentsReadDocumentChunksErrors];
+
+export type documentsReadDocumentChunksResponses = {
+    /**
+     * Successful Response
+     */
+    200: DocumentChunksPublic;
+};
+
+export type documentsReadDocumentChunksResponse = documentsReadDocumentChunksResponses[keyof documentsReadDocumentChunksResponses];
+
+export type knowledgeBaseSearchKnowledgeBaseData = {
+    body: KnowledgeBaseSearchRequest;
+    path: {
+        /**
+         * Knowledge Base Id
+         */
+        knowledge_base_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-bases/{knowledge_base_id}/search';
+};
+
+export type knowledgeBaseSearchKnowledgeBaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeBaseSearchKnowledgeBaseError = knowledgeBaseSearchKnowledgeBaseErrors[keyof knowledgeBaseSearchKnowledgeBaseErrors];
+
+export type knowledgeBaseSearchKnowledgeBaseResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeBaseSearchResponse;
+};
+
+export type knowledgeBaseSearchKnowledgeBaseResponse = knowledgeBaseSearchKnowledgeBaseResponses[keyof knowledgeBaseSearchKnowledgeBaseResponses];
+
+export type knowledgeBaseAskKnowledgeBaseData = {
+    body: KnowledgeBaseSearchRequest;
+    path: {
+        /**
+         * Knowledge Base Id
+         */
+        knowledge_base_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-bases/{knowledge_base_id}/ask';
+};
+
+export type knowledgeBaseAskKnowledgeBaseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeBaseAskKnowledgeBaseError = knowledgeBaseAskKnowledgeBaseErrors[keyof knowledgeBaseAskKnowledgeBaseErrors];
+
+export type knowledgeBaseAskKnowledgeBaseResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeBaseAskResponse;
+};
+
+export type knowledgeBaseAskKnowledgeBaseResponse = knowledgeBaseAskKnowledgeBaseResponses[keyof knowledgeBaseAskKnowledgeBaseResponses];
+
+export type knowledgeBaseAgentRunKnowledgeBaseAgentData = {
+    body: KnowledgeBaseAgentRequest;
+    path: {
+        /**
+         * Knowledge Base Id
+         */
+        knowledge_base_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-bases/{knowledge_base_id}/agent';
+};
+
+export type knowledgeBaseAgentRunKnowledgeBaseAgentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeBaseAgentRunKnowledgeBaseAgentError = knowledgeBaseAgentRunKnowledgeBaseAgentErrors[keyof knowledgeBaseAgentRunKnowledgeBaseAgentErrors];
+
+export type knowledgeBaseAgentRunKnowledgeBaseAgentResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeBaseAskResponse;
+};
+
+export type knowledgeBaseAgentRunKnowledgeBaseAgentResponse = knowledgeBaseAgentRunKnowledgeBaseAgentResponses[keyof knowledgeBaseAgentRunKnowledgeBaseAgentResponses];
+
+export type knowledgeBaseAgentStreamKnowledgeBaseAgentData = {
+    body: KnowledgeBaseAgentRequest;
+    path: {
+        /**
+         * Knowledge Base Id
+         */
+        knowledge_base_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-bases/{knowledge_base_id}/agent/stream';
+};
+
+export type knowledgeBaseAgentStreamKnowledgeBaseAgentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeBaseAgentStreamKnowledgeBaseAgentError = knowledgeBaseAgentStreamKnowledgeBaseAgentErrors[keyof knowledgeBaseAgentStreamKnowledgeBaseAgentErrors];
+
+export type knowledgeBaseAgentStreamKnowledgeBaseAgentResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type conversationsReadConversationsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Knowledge Base Id
+         */
+        knowledge_base_id?: string | null;
+        /**
+         * Skip
+         */
+        skip?: number;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/conversations';
+};
+
+export type conversationsReadConversationsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type conversationsReadConversationsError = conversationsReadConversationsErrors[keyof conversationsReadConversationsErrors];
+
+export type conversationsReadConversationsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ConversationsPublic;
+};
+
+export type conversationsReadConversationsResponse = conversationsReadConversationsResponses[keyof conversationsReadConversationsResponses];
+
+export type conversationsCreateConversationData = {
+    body: ConversationCreateRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/conversations';
+};
+
+export type conversationsCreateConversationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type conversationsCreateConversationError = conversationsCreateConversationErrors[keyof conversationsCreateConversationErrors];
+
+export type conversationsCreateConversationResponses = {
+    /**
+     * Successful Response
+     */
+    201: ConversationPublic;
+};
+
+export type conversationsCreateConversationResponse = conversationsCreateConversationResponses[keyof conversationsCreateConversationResponses];
+
+export type conversationsDeleteConversationData = {
+    body?: never;
+    path: {
+        /**
+         * Conversation Id
+         */
+        conversation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/conversations/{conversation_id}';
+};
+
+export type conversationsDeleteConversationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type conversationsDeleteConversationError = conversationsDeleteConversationErrors[keyof conversationsDeleteConversationErrors];
+
+export type conversationsDeleteConversationResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type conversationsReadConversationData = {
+    body?: never;
+    path: {
+        /**
+         * Conversation Id
+         */
+        conversation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/conversations/{conversation_id}';
+};
+
+export type conversationsReadConversationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type conversationsReadConversationError = conversationsReadConversationErrors[keyof conversationsReadConversationErrors];
+
+export type conversationsReadConversationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ConversationPublic;
+};
+
+export type conversationsReadConversationResponse = conversationsReadConversationResponses[keyof conversationsReadConversationResponses];
+
+export type conversationsUpdateConversationData = {
+    body: ConversationUpdateRequest;
+    path: {
+        /**
+         * Conversation Id
+         */
+        conversation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/conversations/{conversation_id}';
+};
+
+export type conversationsUpdateConversationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type conversationsUpdateConversationError = conversationsUpdateConversationErrors[keyof conversationsUpdateConversationErrors];
+
+export type conversationsUpdateConversationResponses = {
+    /**
+     * Successful Response
+     */
+    200: ConversationPublic;
+};
+
+export type conversationsUpdateConversationResponse = conversationsUpdateConversationResponses[keyof conversationsUpdateConversationResponses];
+
+export type conversationsReadConversationMessagesData = {
+    body?: never;
+    path: {
+        /**
+         * Conversation Id
+         */
+        conversation_id: string;
+    };
+    query?: never;
+    url: '/api/v1/conversations/{conversation_id}/messages';
+};
+
+export type conversationsReadConversationMessagesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type conversationsReadConversationMessagesError = conversationsReadConversationMessagesErrors[keyof conversationsReadConversationMessagesErrors];
+
+export type conversationsReadConversationMessagesResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type privateCreateUserData = {
     body: PrivateUserCreate;
