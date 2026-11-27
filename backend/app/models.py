@@ -346,10 +346,6 @@ class ConversationPublic(ConversationBase):
     updated_at: datetime
 
 
-class ConversationsPublic(SQLModel):
-    data: list[ConversationPublic]
-    count: int
-
 class ConversationCreateRequest(SQLModel):
     knowledge_base_id: uuid.UUID
     title: str = Field(default="新建对话", min_length=1, max_length=200)
