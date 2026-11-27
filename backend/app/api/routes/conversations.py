@@ -174,7 +174,7 @@ async def read_conversation_messages(
     }
 
     # 4. 读取最新 checkpoint
-    checkpoint_tuple = await checkpointer.get_tuple(config)
+    checkpoint_tuple = await checkpointer.aget_tuple(config)
 
     if checkpoint_tuple is None:
         return {
